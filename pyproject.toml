@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "goldenmask"
+version = "0.1.0"
+description = "Protect your python source code with one command."
+authors = ["youngquan <youngquan@qq.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+click = "^7.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+goldenmask = "goldenmask.cli:goldenmask"
+
