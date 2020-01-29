@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "goldenmask"
-version = "0.1.2"
+version = "0.2.0"
 description = "Protect your python source code with one command."
 authors = ["youngquan <youngquan@qq.com>"]
 
@@ -14,6 +14,7 @@ homepage = "https://github.com/youngquan/goldenmask"
 [tool.poetry.dependencies]
 python = "^3.7"
 click = "^7.0"
+cython = "^0.29.14"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

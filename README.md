@@ -1,3 +1,5 @@
-# goldenmask
+# Goldenmask: Protect your python source code
 
-Protect your python source code with one command.
+[简体中文](README_zh_CN.md)
+
+Golden 
