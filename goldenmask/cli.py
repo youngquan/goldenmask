@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import Tuple
 
@@ -8,7 +7,7 @@ import click
 from goldenmask import logger
 from goldenmask.exceptions import UnsupportedLayerException
 from goldenmask.protect import CompileallProtector, CythonProtector
-from goldenmask.utils import remove_python_files, get_build_info
+from goldenmask.utils import get_build_info
 
 # TODO: do i need to add an `--inplace` parameter!
 @click.command()
@@ -20,7 +19,8 @@ from goldenmask.utils import remove_python_files, get_build_info
               default=1,
               help='Level of protection.')
 @click.option('-i', '--inplace',
-              is_flag=True)
+              is_flag=True,
+              help='Whether compile python files in place.')
 def goldenmask(files_or_dirs: Tuple[click.Path], layer: int, inplace: bool):
     """
     Goldenmask is a tool to protect your python source code easily.
@@ -29,8 +29,8 @@ def goldenmask(files_or_dirs: Tuple[click.Path], layer: int, inplace: bool):
         if not Path(file_or_dir).exists():
             logger.error(f'{file_or_dir} dose not exists!')
             continue
-        protector = None
-        success = False
+        # protector = None
+        # success = False
         if layer == 1:
             protector = CompileallProtector(file_or_dir, inplace)
             success = protector.protect()

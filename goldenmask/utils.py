@@ -2,6 +2,9 @@ import os
 import sys
 from typing import Dict, Union, List
 from pathlib import Path
+import re
+
+from goldenmask import GOLDENMASK
 
 
 def remove_python_files(dir_):
@@ -27,9 +30,10 @@ def get_build_info() -> Dict[str, str]:
 def virtualenv_folder(path, names):
     """
     Used for the parameter `ignore` in function `shutil.copytree`.
-    Do not copy virtualenv folder.
+    Do not copy virtualenv folder and `__goldenmask__`.
     """
-    subset = []
+    subset = [GOLDENMASK, '__pycache__', '.idea', '.git', '.svn', '.vscode', '.eggs', '*.egg-info',
+              '.pytest_cache', 'tests']
     for name in names:
         if (Path(path) / name / 'Lib/site-packages').exists():
             subset.append(name)
@@ -39,7 +43,9 @@ def virtualenv_folder(path, names):
 def is_entrypoint(file: Union[str, Path]) -> bool:
     with Path(file).open(encoding='utf8') as f:
         for line in f:
-            if line.strip().replace(" ", "") == "if__name__=='__main__':":
+            # print(line)
+            if (line.strip().replace(" ", "") == "if__name__=='__main__':" or
+                    line.strip().replace(" ", "") == 'if__name__=="__main__":'):
                 return True
         return False
 
@@ -50,8 +56,12 @@ def rename_so_and_pyd_file(file: Union[str, Path]):
     else:
         suffix = '.so'
     pyd_files: List[Path] = list(file.parent.glob(f'{file.stem}.*{suffix}'))
-    assert pyd_files == 1
-    pyd_files[0].rename(file.parent / file.stem / suffix)
+    # print(file)
+    # print(pyd_files)
+    # assert len(pyd_files) > 1
+    if pyd_files:
+        pyd_files[0].rename(file.parent / (file.stem + suffix))
+
 
 
 
