@@ -10,12 +10,11 @@ from Cython.Build import cythonize
 from Cython.Compiler import Options
 
 from goldenmask import logger
-from goldenmask.utils import is_file, remove_python_files, virtualenv_folder, is_entrypoint, rename_so_and_pyd_file
+from goldenmask.exceptions import NoPythonFiles
+from goldenmask.utils import is_file, remove_python_files, virtualenv_folder, is_entrypoint, rename_so_and_pyd_file, \
+    Ignore
 
 Options.docstrings = False
-
-IGNORE_FOLDERS_RE = (r"[/\\][.]svn[/\\]|[/\\][.]git[/\\]|[/\\]env[/\\]|[/\\]venv[/\\]|[/\\]tests[/\\]|"
-                     r"[/\\]Lib[/\\]|[/\\]site-packages[/\\]")
 
 
 class BaseProtector:
@@ -64,7 +63,7 @@ class CompileallProtector(BaseProtector):
         else:
             if self.inplace:
                 # TODO: how about write a class with an method named search
-                rx = re.compile(IGNORE_FOLDERS_RE)
+                rx = Ignore(self.dir)
             else:
                 rx = None
             success = compileall.compile_dir(self.dir, force=True, legacy=True, optimize=2, quiet=1,
@@ -89,8 +88,11 @@ class CythonProtector(BaseProtector):
                 compiler_directives={'language_level': 3}
             )
             try:
-                os.chdir(str(self.file.parent))
-                setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
+                # os.chdir(str(self.file.parent))
+                # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
+                # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
+                setup(ext_modules=ext_modules,
+                      script_args=["build_ext", "-b", str(self.file.parent), "-t", str(self.build_temp)])
             except Exception as e:
                 logger.warning(f'Can not build file {self.file} using Cython, we will try to use Compileall!')
                 logger.warning(e)
@@ -98,13 +100,13 @@ class CythonProtector(BaseProtector):
                 success = protector.protect()
             if success:
                 self.clean(self.file)
-                shutil.rmtree(self.file.parent / 'build')
+                shutil.rmtree(self.build_temp)
+                # shutil.rmtree(self.file.parent / 'build')
             return success
         else:
             python_files_normal = []
             for file in Path(self.dir).rglob('*.py'):
-                if re.compile(IGNORE_FOLDERS_RE).search(str(file)):
-                    # exclude folder .svn .git env venv Lib site-packages
+                if Ignore(self.dir).search(str(file)):
                     continue
                 if ((file.stem.startswith('__') and file.stem.endswith('__')) or
                         is_entrypoint(file) or
@@ -116,6 +118,9 @@ class CythonProtector(BaseProtector):
                 else:
                     python_files_normal.append(str(file))
 
+            if not python_files_normal:
+                logger.error(f"There is no python files to build using Cython in folder {self.dir}")
+                raise NoPythonFiles()
             ext_modules = cythonize(
                 python_files_normal,
                 compiler_directives={'language_level': 3},
@@ -123,9 +128,11 @@ class CythonProtector(BaseProtector):
                 force=True
             )
             try:
-                os.chdir(str(self.dir))
+                # os.chdir(str(self.dir))
+                # setup(ext_modules=ext_modules,
+                #       script_args=["build_ext", "--inplace"])
                 setup(ext_modules=ext_modules,
-                      script_args=["build_ext", "--inplace"])
+                      script_args=["build_ext", "-b", str(self.dir), "-t", str(self.build_temp)])
             except Exception as e:
                 logger.error(e)
                 success = False
@@ -133,14 +140,15 @@ class CythonProtector(BaseProtector):
             if success:
                 for file in python_files_normal:
                     self.clean(Path(file))
-                shutil.rmtree(self.dir / 'build')
+                shutil.rmtree(self.build_temp)
+                # shutil.rmtree(self.dir / 'build')
 
         return success
 
     @staticmethod
     def clean(file: Path):
         file.unlink()
-        file_c = file.parent / (file.stem + '.c')
+        file_c = file.with_suffix('.c')
         if file_c.exists():
             file_c.unlink()
         rename_so_and_pyd_file(file)

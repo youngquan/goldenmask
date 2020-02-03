@@ -36,13 +36,14 @@ def test_compile_one_dir(tmp_path):
     # print(str(shared_datadir / 'demo-project'))
     # print(list((shared_datadir / 'demo-project').iterdir()))
     src = 'E:\\projects\\goldenmask\\tests\\data\\demo-project'
-    des = tmp_path / 'demo-project'
-    des = Path('data/demo-project')
+    # des = tmp_path / 'demo-project'
+    # des = Path('data/demo-project')
     # shutil.copytree(src, des)
-    runner = CliRunner(charset='gb2312')
-    result = runner.invoke(goldenmask, ['-l', 2, str(des.resolve())], color=True)
-    assert result.exit_code == 0
+    runner = CliRunner()
+    result = runner.invoke(goldenmask, ['-l', 2, src], color=True)
     print(result.output)
+    assert result.exit_code == 0
+
 
 # def test_compile_one_dir(tmp_path, shared_datadir):
 #     # shutil.copytree(shared_datadir / 'demo-project', tmp_path / 'demo-project')

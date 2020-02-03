@@ -13,7 +13,7 @@ def test_compile_one_file(tmp_path: Path):
     file_pyc = file_py.parent / GOLDENMASK / (file_py.name + 'c')
     assert file_pyc.exists()
     assert len(list(tmp_path.iterdir())) == 2
-    assert len(list((tmp_path / GOLDENMASK).iterdir())) == 1
+    assert len(list((tmp_path / GOLDENMASK).iterdir())) == 2
     file_py_cleaned = file_py.parent / GOLDENMASK / file_py.name
     assert not file_py_cleaned.exists()
 
@@ -25,7 +25,7 @@ def test_compile_one_file_and_inplace(tmp_path: Path):
     result = runner.invoke(goldenmask, ['-i', str(file_py)])
     assert result.exit_code == 0
     file_pyc = Path(str(file_py) + 'c')
-    assert len(list(tmp_path.iterdir())) == 1
+    assert len(list(tmp_path.iterdir())) == 2
     assert file_pyc.exists()
     assert not file_py.exists()
 
@@ -46,7 +46,7 @@ def test_compile_one_dir(tmp_path):
         file_py = tmp_path / GOLDENMASK / (str(i) + '.py')
         assert not file_py.exists()
 
-    assert len(list((tmp_path / GOLDENMASK).iterdir())) == file_num
+    assert len(list((tmp_path / GOLDENMASK).iterdir())) == file_num + 1
 
 
 def test_compile_one_dir_and_inplace(tmp_path):
@@ -64,4 +64,4 @@ def test_compile_one_dir_and_inplace(tmp_path):
         file_py = tmp_path / (str(i) + '.py')
         assert not file_py.exists()
 
-    assert len(list(tmp_path.iterdir())) == file_num
+    assert len(list(tmp_path.iterdir())) == file_num + 1

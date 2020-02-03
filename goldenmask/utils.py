@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Dict, Union, List
 from pathlib import Path
+import fnmatch
 import re
 
 from goldenmask import GOLDENMASK
@@ -13,10 +14,10 @@ def remove_python_files(dir_):
 
 
 def is_file(file_or_dir):
-    if Path(file_or_dir).is_dir():
-        file = False
-    else:
+    if Path(file_or_dir).is_file():
         file = True
+    else:
+        file = False
     return file
 
 
@@ -62,6 +63,52 @@ def rename_so_and_pyd_file(file: Union[str, Path]):
     if pyd_files:
         pyd_files[0].rename(file.parent / (file.stem + suffix))
 
+
+class Ignore:
+    def __init__(self, directory: Path, ignore_file_name: str='.goldenmaskignore'):
+        self.dir = directory
+        self.ignore_file = self.dir / ignore_file_name
+        if not self.ignore_file.exists():
+            self.ignore_file = Path('.goldenmaskignore')
+        ignore_pattern_set = set()
+
+        with self.ignore_file.open(encoding='utf8') as f:
+            for line in f:
+                if line.startswith('#') or not line.strip():
+                    continue
+                else:
+                    ignore_pattern_set.add(line.strip())
+        self.patterns = ignore_pattern_set
+        # TODO: whether the path of the virtual environment needs to be detected
+        self.python_ignore_folders = ["venv/", "env/", ".venv", ".env", "ENV/", "env.bak/", "venv.bak/", "tests/"]
+
+    def search(self, fullname: str) -> bool:
+        relative_path = Path(fullname).relative_to(self.dir)
+        for ignore_pattern in self.python_ignore_folders:
+            # TODO： make sure that `ignore_pattern.encode('unicode_escape').decode()` is unnecessary!
+            if re.match(ignore_pattern, relative_path.as_posix()):
+                return True
+        return False
+
+    def copy(self, path, names):
+        """
+        Used for the parameter `ignore` in function `shutil.copytree`.
+        Do not copy virtualenv folder and `__goldenmask__`.
+        """
+        subset = [GOLDENMASK, '__pycache__', '.idea', '.git', '.svn', '.vscode', '.eggs', '*.egg-info',
+                  '.pytest_cache', 'tests']
+        for name in names:
+            if (Path(path) / name / 'Lib/site-packages').exists():
+                subset.append(name)
+        return subset
+
+    def virtualenv_folders(self):
+        folders = []
+        for name in self.dir.iterdir():
+            if name.is_dir():
+                if (self.dir / name / 'Lib/site-packages').exists():
+                    folders.append(str(name))
+        return folders
 
 
 
