@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from click.testing import CliRunner
 from goldenmask.cli import goldenmask
-from goldenmask import GOLDENMASK
+from goldenmask import GOLDENMASK, GOLDENMASK_INFO
 
 
 def test_compile_one_file(tmp_path: Path, suffix_so_or_pyd):
@@ -72,3 +72,43 @@ def test_compile_one_dir(tmp_path):
 #         assert file_pyc.exists()
 #         file_py = tmp_path / (str(i) + '.py')
 #         assert not file_py.exists()
+
+
+def test_compile_one_wheel_package(shared_datadir: Path):
+    wheel_file = shared_datadir / 'goldenmask-0.1.2-py3-none-any.whl'
+    runner = CliRunner()
+    result = runner.invoke(goldenmask, ['-l', 2, str(wheel_file)])
+    assert result.exit_code == 0
+    result_file = wheel_file.parent / GOLDENMASK / wheel_file.name
+    assert result_file.exists()
+    assert (result_file.parent / GOLDENMASK_INFO).exists()
+
+
+def test_compile_one_wheel_package_inplace(shared_datadir: Path):
+    wheel_file = shared_datadir / 'goldenmask-0.1.2-py3-none-any.whl'
+    runner = CliRunner()
+    result = runner.invoke(goldenmask, ['--inplace', '-l', 2, str(wheel_file)])
+    assert result.exit_code == 0
+    result_file = wheel_file
+    assert result_file.exists()
+    assert (result_file.parent / GOLDENMASK_INFO).exists()
+
+
+def test_compile_one_source_package(shared_datadir: Path):
+    wheel_file = shared_datadir / 'goldenmask-0.1.2.tar.gz'
+    runner = CliRunner()
+    result = runner.invoke(goldenmask, ['-l', 2, str(wheel_file)])
+    assert result.exit_code == 0
+    result_file = wheel_file.parent / GOLDENMASK / wheel_file.name
+    assert result_file.exists()
+    assert (result_file.parent / GOLDENMASK_INFO).exists()
+
+
+def test_compile_one_source_package_inplace(shared_datadir: Path):
+    wheel_file = shared_datadir / 'goldenmask-0.1.2.tar.gz'
+    runner = CliRunner()
+    result = runner.invoke(goldenmask, ['--inplace', '-l', 2, str(wheel_file)])
+    assert result.exit_code == 0
+    result_file = wheel_file
+    assert result_file.exists()
+    assert (result_file.parent / GOLDENMASK_INFO).exists()

@@ -8,3 +8,4 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 GOLDENMASK = '__goldenmask__'
+GOLDENMASK_INFO = '.goldenmask'

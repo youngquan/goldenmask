@@ -3,7 +3,7 @@ from pathlib import Path
 from goldenmask.utils import pack, unpack
 
 
-def test_unpack_and_pack_wheel_file_inplace(tmp_path: Path, shared_datadir: Path):
+def test_unpack_and_pack_wheel_file_inplace(shared_datadir: Path):
     wheel_file = shared_datadir / 'goldenmask-0.1.2-py3-none-any.whl'
     unpacked_dir = unpack(wheel_file)
     assert unpacked_dir
@@ -16,7 +16,7 @@ def test_unpack_and_pack_wheel_file_inplace(tmp_path: Path, shared_datadir: Path
         child.name for child in unpacked_dir_again.iterdir())
 
 
-def test_unpack_and_pack_gztar_file_inplace(tmp_path: Path, shared_datadir: Path):
+def test_unpack_and_pack_gztar_file_inplace(shared_datadir: Path):
     gztar_file = shared_datadir / 'goldenmask-0.1.2.tar.gz'
     unpacked_dir = unpack(gztar_file)
     assert unpacked_dir

@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
 # from distutils.core import setup
@@ -10,7 +11,7 @@ from setuptools import setup
 from Cython.Build import cythonize
 from Cython.Compiler import Options
 
-from goldenmask import logger
+from goldenmask import logger, GOLDENMASK
 from goldenmask.exceptions import NoPythonFiles
 from goldenmask.utils import is_file, remove_python_files, is_entrypoint, rename_so_and_pyd_file, \
     Ignore, get_file_type, unpack, pack
@@ -23,17 +24,18 @@ class BaseProtector:
         self.file_or_dir = Path(file_or_dir)
         self.is_file = is_file(file_or_dir)
         if self.is_file:
-            if not all(get_file_type(file_or_dir)):
+            if not any(get_file_type(file_or_dir)):
                 logger.error(f"This {self.file_or_dir} can not be protect now! "
                              f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!")
+                sys.exit()
             self.is_pyfile, self.is_wheel, self.is_tarball = get_file_type(file_or_dir)
 
         self.inplace = inplace
         self.no_smart = no_smart
-        if self.is_wheel or self.is_tarball:
-            tmp_directory = unpack(self.file)
-            self.dir = tmp_directory
-            self.no_smart = True
+        # if self.is_wheel or self.is_tarball:
+        #     tmp_directory = unpack(self.file_or_dir)
+        #     self.dir = tmp_directory
+        #     self.no_smart = True
 
         if self.is_pyfile:
             if self.inplace:
@@ -51,18 +53,28 @@ class BaseProtector:
             self.info_file = self.file.parent / '.goldenmask'
             self.build_temp = self.file.parent / 'build-goldenmask'
         else:
-            if self.inplace or self.is_file:
-                self.dir = self.file_or_dir
-            else:
-                self.dir = Path(file_or_dir) / '__goldenmask__'
-                if self.dir.exists():
-                    # TODO: may be I should try to speed !
-                    shutil.rmtree(self.dir)
-                if self.no_smart:
-                    shutil.copytree(self.file_or_dir, self.dir)
+            if self.is_file:
+                tmp_directory = unpack(self.file_or_dir)
+                self.dir = tmp_directory
+                self.no_smart = True
+                if self.inplace:
+                    self.info_file = self.file_or_dir.parent / '.goldenmask'
                 else:
-                    shutil.copytree(self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy)
-            self.info_file = self.dir / '.goldenmask'
+                    self.info_file = self.file_or_dir.parent / GOLDENMASK / '.goldenmask'
+            else:
+                if self.inplace:
+                    self.dir = self.file_or_dir
+                else:
+                    self.dir = Path(file_or_dir) / '__goldenmask__'
+                    if self.dir.exists():
+                        # TODO: may be I should try to speed !
+                        shutil.rmtree(self.dir)
+                    if self.no_smart:
+                        shutil.copytree(self.file_or_dir, self.dir)
+                    else:
+                        shutil.copytree(self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy)
+                self.info_file = self.dir / '.goldenmask'
+
             self.build_temp = self.dir / 'build-goldenmask'
 
 
