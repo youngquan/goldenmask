@@ -17,25 +17,27 @@ from goldenmask.utils import get_build_info
 @click.option('-l', '--layer',
               type=int,
               default=1,
-              help='Level of protection.')
+              metavar='<int>',
+              help='Level of protection: 1-compileall; 2-cython.')
 @click.option('-i', '--inplace',
               is_flag=True,
               help='Whether compile python files in place.')
-def goldenmask(files_or_dirs: Tuple[click.Path], layer: int, inplace: bool):
+@click.option('--no_smart',
+              is_flag=True,
+              help='This will copy and compile everything you specified.')
+def goldenmask(files_or_dirs: Tuple[click.Path], layer: int, inplace: bool, no_smart: bool):
     """
     Goldenmask is a tool to protect your python source code easily.
     """
     for file_or_dir in files_or_dirs:
-        if not Path(file_or_dir).exists():
+        if not Path(file_or_dir).exists():  # type: ignore
             logger.error(f'{file_or_dir} dose not exists!')
             continue
-        # protector = None
-        # success = False
         if layer == 1:
-            protector = CompileallProtector(file_or_dir, inplace)
+            protector = CompileallProtector(file_or_dir, inplace, no_smart)
             success = protector.protect()
         elif layer == 2:
-            protector = CythonProtector(file_or_dir, inplace)
+            protector = CythonProtector(file_or_dir, inplace, no_smart)
             success = protector.protect()
         else:
             raise UnsupportedLayerException(f"This layer {layer} is not supported now!")

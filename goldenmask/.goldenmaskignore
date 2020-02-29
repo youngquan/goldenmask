@@ -1,7 +1,7 @@
 # Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+__pycache__
+.py[cod]
+py.class
 
 # C extensions
 *.so
@@ -11,14 +11,14 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
+# downloads/
 eggs/
 .eggs/
-lib/
+# lib/
 lib64/
-parts/
+# parts/
 sdist/
-var/
+# var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
@@ -69,7 +69,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/
 
 # PyBuilder
 target/
@@ -102,13 +102,13 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# .env
+# .venv
+# env/
+# venv/
+# ENV/
+# env.bak/
+# venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -118,7 +118,8 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /site
+docs/
 
 # mypy
 .mypy_cache/

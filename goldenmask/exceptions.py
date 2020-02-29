@@ -11,3 +11,7 @@ class UnsupportedLayerException(Exception):
 
 class NoPythonFiles(Exception):
     """There is no python files to build"""
+
+
+class UnsupportedFileError(Exception):
+    """Raise when file's suffix is not '.py', '.tar.gz' or '.whl'."""

@@ -1,4 +1,5 @@
 import compileall
+import multiprocessing
 import os
 import re
 import shutil
@@ -11,18 +12,30 @@ from Cython.Compiler import Options
 
 from goldenmask import logger
 from goldenmask.exceptions import NoPythonFiles
-from goldenmask.utils import is_file, remove_python_files, virtualenv_folder, is_entrypoint, rename_so_and_pyd_file, \
-    Ignore
+from goldenmask.utils import is_file, remove_python_files, is_entrypoint, rename_so_and_pyd_file, \
+    Ignore, get_file_type, unpack, pack
 
 Options.docstrings = False
 
 
 class BaseProtector:
-    def __init__(self, file_or_dir, inplace):
+    def __init__(self, file_or_dir, inplace, no_smart):
         self.file_or_dir = Path(file_or_dir)
         self.is_file = is_file(file_or_dir)
-        self.inplace = inplace
         if self.is_file:
+            if not all(get_file_type(file_or_dir)):
+                logger.error(f"This {self.file_or_dir} can not be protect now! "
+                             f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!")
+            self.is_pyfile, self.is_wheel, self.is_tarball = get_file_type(file_or_dir)
+
+        self.inplace = inplace
+        self.no_smart = no_smart
+        if self.is_wheel or self.is_tarball:
+            tmp_directory = unpack(self.file)
+            self.dir = tmp_directory
+            self.no_smart = True
+
+        if self.is_pyfile:
             if self.inplace:
                 self.file = self.file_or_dir
             else:
@@ -38,31 +51,37 @@ class BaseProtector:
             self.info_file = self.file.parent / '.goldenmask'
             self.build_temp = self.file.parent / 'build-goldenmask'
         else:
-            if self.inplace:
+            if self.inplace or self.is_file:
                 self.dir = self.file_or_dir
             else:
                 self.dir = Path(file_or_dir) / '__goldenmask__'
                 if self.dir.exists():
                     # TODO: may be I should try to speed !
                     shutil.rmtree(self.dir)
-                shutil.copytree(self.file_or_dir, self.dir, ignore=virtualenv_folder)
+                if self.no_smart:
+                    shutil.copytree(self.file_or_dir, self.dir)
+                else:
+                    shutil.copytree(self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy)
             self.info_file = self.dir / '.goldenmask'
             self.build_temp = self.dir / 'build-goldenmask'
 
 
 class CompileallProtector(BaseProtector):
 
-    def __init__(self, file_or_dir, inplace=False):
-        super().__init__(file_or_dir, inplace)
+    def __init__(self, file_or_dir, inplace=False, no_smart=False):
+        super().__init__(file_or_dir, inplace, no_smart)
 
     def protect(self):
-        if self.is_file:
+        if self.is_pyfile:
             success = compileall.compile_file(self.file, force=True, legacy=True, optimize=2, quiet=1)
             if success:
                 os.remove(self.file)
         else:
-            if self.inplace:
-                # TODO: how about write a class with an method named search
+            if self.is_file:
+                rx = None
+            # Below is needed, because when the option inplace is not true, virtual env folder has already
+            # been ignored when pasting them.
+            elif self.inplace and not self.no_smart:
                 rx = Ignore(self.dir)
             else:
                 rx = None
@@ -71,17 +90,21 @@ class CompileallProtector(BaseProtector):
                                              workers=os.cpu_count())
             if success:
                 remove_python_files(self.dir)
+
+            if self.is_file:
+                _ = pack(self.dir, self.file_or_dir, self.inplace)
+                shutil.rmtree(self.dir, ignore_errors=True)
         return success
 
 
 class CythonProtector(BaseProtector):
 
-    def __init__(self, file_or_dir, inplace=False):
-        super().__init__(file_or_dir, inplace)
+    def __init__(self, file_or_dir, inplace=False, no_smart=False):
+        super().__init__(file_or_dir, inplace, no_smart)
 
     def protect(self):
         success = True
-        if self.is_file:
+        if self.is_pyfile:
             success = True
             ext_modules = cythonize(
                 str(self.file),
@@ -106,8 +129,9 @@ class CythonProtector(BaseProtector):
         else:
             python_files_normal = []
             for file in Path(self.dir).rglob('*.py'):
-                if Ignore(self.dir).search(str(file)):
+                if Ignore(self.dir).search(str(file)) and not self.no_smart:
                     continue
+                # TODO: It seems that there are many files that can not be compiled using Cython.
                 if ((file.stem.startswith('__') and file.stem.endswith('__')) or
                         is_entrypoint(file) or
                         file.name == 'setup.py'):
@@ -125,12 +149,10 @@ class CythonProtector(BaseProtector):
                 python_files_normal,
                 compiler_directives={'language_level': 3},
                 quiet=True,
-                force=True
+                force=True,
+                nthreads=multiprocessing.cpu_count()
             )
             try:
-                # os.chdir(str(self.dir))
-                # setup(ext_modules=ext_modules,
-                #       script_args=["build_ext", "--inplace"])
                 setup(ext_modules=ext_modules,
                       script_args=["build_ext", "-b", str(self.dir), "-t", str(self.build_temp)])
             except Exception as e:
@@ -141,7 +163,10 @@ class CythonProtector(BaseProtector):
                 for file in python_files_normal:
                     self.clean(Path(file))
                 shutil.rmtree(self.build_temp)
-                # shutil.rmtree(self.dir / 'build')
+
+            if self.is_file:
+                _ = pack(self.dir, self.file_or_dir, self.inplace)
+                shutil.rmtree(self.dir, ignore_errors=True)
 
         return success
 
