@@ -35,7 +35,7 @@ def test_compile_one_dir(tmp_path):
     # shutil.copytree(shared_datadir / 'demo-project', tmp_path / 'demo-project')
     # print(str(shared_datadir / 'demo-project'))
     # print(list((shared_datadir / 'demo-project').iterdir()))
-    src = "E:\\projects\\goldenmask\\tests\\data\\demo-project"
+    src = r"E:\projects\goldenmask\tests\data\demo-project"
     # des = tmp_path / 'demo-project'
     # des = Path('data/demo-project')
     # shutil.copytree(src, des)

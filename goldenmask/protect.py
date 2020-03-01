@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import shutil
 import sys
+from distutils.core import setup
 from pathlib import Path
 
 from Cython.Build import cythonize
@@ -13,44 +14,37 @@ from goldenmask.utils import (
     Ignore,
     get_file_type,
     is_entrypoint,
-    is_file,
     pack,
     remove_python_files,
     rename_so_and_pyd_file,
     unpack,
 )
-# from distutils.core import setup
-from setuptools import setup
 
 Options.docstrings = False
 
 
 class BaseProtector:
-    def __init__(self, file_or_dir, inplace, no_smart):
-        self.file_or_dir = Path(file_or_dir)
-        self.is_file = is_file(file_or_dir)
-        if self.is_file:
-            if not any(get_file_type(file_or_dir)):
+    def __init__(self, source_path, inplace, no_smart):
+        self.source_path = Path(source_path)
+        self.is_pyfile, self.is_wheel, self.is_tarball, self.is_dir = get_file_type(
+            source_path
+        )
+        if not self.is_dir:
+            if not any(get_file_type(source_path)):
                 logger.error(
-                    f"This {self.file_or_dir} can not be protect now! "
+                    f"This {self.source_path} can not be protect now! "
                     f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!"
                 )
                 sys.exit()
-            self.is_pyfile, self.is_wheel, self.is_tarball = get_file_type(file_or_dir)
-
         self.inplace = inplace
         self.no_smart = no_smart
-        # if self.is_wheel or self.is_tarball:
-        #     tmp_directory = unpack(self.file_or_dir)
-        #     self.dir = tmp_directory
-        #     self.no_smart = True
 
         if self.is_pyfile:
             if self.inplace:
-                self.file = self.file_or_dir
+                self.file = self.source_path
             else:
                 self.file = (
-                    self.file_or_dir.parent / "__goldenmask__" / self.file_or_dir.name
+                    self.source_path.parent / "__goldenmask__" / self.source_path.name
                 )
                 if self.file.exists():
                     os.remove(self.file)
@@ -59,42 +53,39 @@ class BaseProtector:
                         self.file.parent.mkdir()
                     except FileExistsError:
                         pass
-                shutil.copy(self.file_or_dir, self.file)
+                shutil.copy(self.source_path, self.file)
             self.info_file = self.file.parent / ".goldenmask"
             self.build_temp = self.file.parent / "build-goldenmask"
-        else:
-            if self.is_file:
-                tmp_directory = unpack(self.file_or_dir)
-                self.dir = tmp_directory
-                self.no_smart = True
-                if self.inplace:
-                    self.info_file = self.file_or_dir.parent / ".goldenmask"
-                else:
-                    self.info_file = (
-                        self.file_or_dir.parent / GOLDENMASK / ".goldenmask"
-                    )
+        elif self.is_wheel or self.is_tarball:
+            tmp_directory = unpack(self.source_path)
+            self.dir = tmp_directory
+            self.no_smart = True
+            if self.inplace:
+                self.info_file = self.source_path.parent / ".goldenmask"
             else:
-                if self.inplace:
-                    self.dir = self.file_or_dir
+                self.info_file = self.source_path.parent / GOLDENMASK / ".goldenmask"
+            self.build_temp = self.dir / "build-goldenmask"
+        else:
+            if self.inplace:
+                self.dir = self.source_path
+            else:
+                self.dir = Path(source_path) / "__goldenmask__"
+                if self.dir.exists():
+                    # TODO: may be I should try to speed !
+                    shutil.rmtree(self.dir)
+                if self.no_smart:
+                    shutil.copytree(self.source_path, self.dir)
                 else:
-                    self.dir = Path(file_or_dir) / "__goldenmask__"
-                    if self.dir.exists():
-                        # TODO: may be I should try to speed !
-                        shutil.rmtree(self.dir)
-                    if self.no_smart:
-                        shutil.copytree(self.file_or_dir, self.dir)
-                    else:
-                        shutil.copytree(
-                            self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy
-                        )
-                self.info_file = self.dir / ".goldenmask"
-
+                    shutil.copytree(
+                        self.source_path, self.dir, ignore=Ignore(self.dir).copy
+                    )
+            self.info_file = self.dir / ".goldenmask"
             self.build_temp = self.dir / "build-goldenmask"
 
 
 class CompileallProtector(BaseProtector):
-    def __init__(self, file_or_dir, inplace=False, no_smart=False):
-        super().__init__(file_or_dir, inplace, no_smart)
+    def __init__(self, source_path, inplace=False, no_smart=False):
+        super().__init__(source_path, inplace, no_smart)
 
     def protect(self):
         if self.is_pyfile:
@@ -104,14 +95,16 @@ class CompileallProtector(BaseProtector):
             if success:
                 os.remove(self.file)
         else:
-            if self.is_file:
-                rx = None
-            # Below is needed, because when the option inplace is not true, virtual env folder has already
-            # been ignored when pasting them.
-            elif self.inplace and not self.no_smart:
-                rx = Ignore(self.dir)
+            if self.is_dir:
+                # Below is needed, because when the option inplace is not true, virtual env folder has already
+                # been ignored when pasting them.
+                if self.inplace and not self.no_smart:
+                    rx = Ignore(self.dir)
+                else:
+                    rx = None
             else:
                 rx = None
+
             success = compileall.compile_dir(
                 self.dir,
                 force=True,
@@ -124,27 +117,24 @@ class CompileallProtector(BaseProtector):
             if success:
                 remove_python_files(self.dir)
 
-            if self.is_file:
-                _ = pack(self.dir, self.file_or_dir, self.inplace)
+            if self.is_wheel or self.is_tarball:
+                _ = pack(self.dir, self.source_path, self.inplace)
                 shutil.rmtree(self.dir, ignore_errors=True)
         return success
 
 
 class CythonProtector(BaseProtector):
-    def __init__(self, file_or_dir, inplace=False, no_smart=False):
-        super().__init__(file_or_dir, inplace, no_smart)
+    def __init__(self, source_path, inplace=False, no_smart=False):
+        super().__init__(source_path, inplace, no_smart)
 
     def protect(self):
-        success = True
+        success = False
         if self.is_pyfile:
             success = True
             ext_modules = cythonize(
                 str(self.file), compiler_directives={"language_level": 3}
             )
             try:
-                # os.chdir(str(self.file.parent))
-                # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
-                # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
                 setup(
                     ext_modules=ext_modules,
                     script_args=[
@@ -165,7 +155,6 @@ class CythonProtector(BaseProtector):
             if success:
                 self.clean(self.file)
                 shutil.rmtree(self.build_temp)
-                # shutil.rmtree(self.file.parent / 'build')
             return success
         else:
             python_files_normal = []
@@ -217,8 +206,8 @@ class CythonProtector(BaseProtector):
                     self.clean(Path(file))
                 shutil.rmtree(self.build_temp)
 
-            if self.is_file:
-                _ = pack(self.dir, self.file_or_dir, self.inplace)
+            if self.is_wheel or self.is_tarball:
+                _ = pack(self.dir, self.source_path, self.inplace)
                 shutil.rmtree(self.dir, ignore_errors=True)
 
         return success

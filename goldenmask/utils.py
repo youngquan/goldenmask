@@ -17,42 +17,44 @@ def remove_python_files(dir_):
         os.remove(str(py_file))
 
 
-def is_file(file_or_dir):
-    if Path(file_or_dir).is_file():
-        file = True
-    else:
-        file = False
-    return file
+def get_file_type(path: str) -> Tuple[bool, bool, bool, bool]:
+    """Use path's suffix to determine its type.
 
-
-def get_file_type(file: str) -> Tuple[bool, bool, bool]:
-    """Use file's suffix to determine its type.
     Args:
-        file: filename or file path string
+        path: filename or file path string
 
     Returns:
         A tuple like (is_pyfile, is_wheel, is_tarball)
     """
 
-    def is_pyfile(file: str) -> bool:
-        if file.endswith(".py"):
+    def is_pyfile(path: str) -> bool:
+        if path.endswith(".py"):
             return True
         else:
             return False
 
-    def is_tarball(file: str) -> bool:
-        if file.endswith(".tar.gz"):
+    def is_tarball(path: str) -> bool:
+        if path.endswith(".tar.gz"):
             return True
         else:
             return False
 
-    def is_wheel(file: str) -> bool:
-        if file.endswith(".whl"):
+    def is_wheel(path: str) -> bool:
+        if path.endswith(".whl"):
             return True
         else:
             return False
 
-    return is_pyfile(file), is_wheel(file), is_tarball(file)
+    def is_dir(path):
+        if Path(path).is_dir():
+            return True
+        else:
+            return False
+
+    if is_dir(path):
+        return False, False, False, True
+    else:
+        return is_pyfile(path), is_wheel(path), is_tarball(path), False
 
 
 def unpack(file: Path) -> Path:
