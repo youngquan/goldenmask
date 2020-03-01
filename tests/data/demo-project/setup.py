@@ -1,6 +1,5 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+
 setup(
-    name="goldenmask",
-    version="0.1",
-    packages=find_packages(),
+    name="goldenmask", version="0.1", packages=find_packages(),
 )

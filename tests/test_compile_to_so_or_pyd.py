@@ -1,15 +1,15 @@
-import shutil
 from pathlib import Path
+
 from click.testing import CliRunner
-from goldenmask.cli import goldenmask
 from goldenmask import GOLDENMASK, GOLDENMASK_INFO
+from goldenmask.cli import goldenmask
 
 
 def test_compile_one_file(tmp_path: Path, suffix_so_or_pyd):
     file_py: Path = tmp_path / "a.py"
     file_py.write_text("""def a():\n    print('This is file a')\n""")
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['-l', 2, str(file_py)])
+    result = runner.invoke(goldenmask, ["-l", 2, str(file_py)])
     assert result.exit_code == 0
     file_so_or_pyd = file_py.parent / GOLDENMASK / (file_py.stem + suffix_so_or_pyd)
     assert file_so_or_pyd.exists()
@@ -23,7 +23,7 @@ def test_compile_one_file_and_inplace(tmp_path: Path, suffix_so_or_pyd):
     file_py = tmp_path / "a.py"
     file_py.write_text("def a():\n    print('This is file a')\n")
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['-l', 2, '--inplace', str(file_py)])
+    result = runner.invoke(goldenmask, ["-l", 2, "--inplace", str(file_py)])
     assert result.exit_code == 0
     file_so_or_pyd = tmp_path / (file_py.stem + suffix_so_or_pyd)
     assert file_so_or_pyd.exists()
@@ -35,12 +35,12 @@ def test_compile_one_dir(tmp_path):
     # shutil.copytree(shared_datadir / 'demo-project', tmp_path / 'demo-project')
     # print(str(shared_datadir / 'demo-project'))
     # print(list((shared_datadir / 'demo-project').iterdir()))
-    src = 'E:\\projects\\goldenmask\\tests\\data\\demo-project'
+    src = "E:\\projects\\goldenmask\\tests\\data\\demo-project"
     # des = tmp_path / 'demo-project'
     # des = Path('data/demo-project')
     # shutil.copytree(src, des)
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['-l', 2, src], color=True)
+    result = runner.invoke(goldenmask, ["-l", 2, src], color=True)
     print(result.output)
     assert result.exit_code == 0
 
@@ -75,9 +75,9 @@ def test_compile_one_dir(tmp_path):
 
 
 def test_compile_one_wheel_package(shared_datadir: Path):
-    wheel_file = shared_datadir / 'goldenmask-0.1.2-py3-none-any.whl'
+    wheel_file = shared_datadir / "goldenmask-0.1.2-py3-none-any.whl"
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['-l', 2, str(wheel_file)])
+    result = runner.invoke(goldenmask, ["-l", 2, str(wheel_file)])
     assert result.exit_code == 0
     result_file = wheel_file.parent / GOLDENMASK / wheel_file.name
     assert result_file.exists()
@@ -85,9 +85,9 @@ def test_compile_one_wheel_package(shared_datadir: Path):
 
 
 def test_compile_one_wheel_package_inplace(shared_datadir: Path):
-    wheel_file = shared_datadir / 'goldenmask-0.1.2-py3-none-any.whl'
+    wheel_file = shared_datadir / "goldenmask-0.1.2-py3-none-any.whl"
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['--inplace', '-l', 2, str(wheel_file)])
+    result = runner.invoke(goldenmask, ["--inplace", "-l", 2, str(wheel_file)])
     assert result.exit_code == 0
     result_file = wheel_file
     assert result_file.exists()
@@ -95,9 +95,9 @@ def test_compile_one_wheel_package_inplace(shared_datadir: Path):
 
 
 def test_compile_one_source_package(shared_datadir: Path):
-    wheel_file = shared_datadir / 'goldenmask-0.1.2.tar.gz'
+    wheel_file = shared_datadir / "goldenmask-0.1.2.tar.gz"
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['-l', 2, str(wheel_file)])
+    result = runner.invoke(goldenmask, ["-l", 2, str(wheel_file)])
     assert result.exit_code == 0
     result_file = wheel_file.parent / GOLDENMASK / wheel_file.name
     assert result_file.exists()
@@ -105,9 +105,9 @@ def test_compile_one_source_package(shared_datadir: Path):
 
 
 def test_compile_one_source_package_inplace(shared_datadir: Path):
-    wheel_file = shared_datadir / 'goldenmask-0.1.2.tar.gz'
+    wheel_file = shared_datadir / "goldenmask-0.1.2.tar.gz"
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ['--inplace', '-l', 2, str(wheel_file)])
+    result = runner.invoke(goldenmask, ["--inplace", "-l", 2, str(wheel_file)])
     assert result.exit_code == 0
     result_file = wheel_file
     assert result_file.exists()

@@ -1,20 +1,26 @@
 import compileall
 import multiprocessing
 import os
-import re
 import shutil
 import sys
 from pathlib import Path
 
-# from distutils.core import setup
-from setuptools import setup
 from Cython.Build import cythonize
 from Cython.Compiler import Options
-
-from goldenmask import logger, GOLDENMASK
+from goldenmask import GOLDENMASK, logger
 from goldenmask.exceptions import NoPythonFiles
-from goldenmask.utils import is_file, remove_python_files, is_entrypoint, rename_so_and_pyd_file, \
-    Ignore, get_file_type, unpack, pack
+from goldenmask.utils import (
+    Ignore,
+    get_file_type,
+    is_entrypoint,
+    is_file,
+    pack,
+    remove_python_files,
+    rename_so_and_pyd_file,
+    unpack,
+)
+# from distutils.core import setup
+from setuptools import setup
 
 Options.docstrings = False
 
@@ -25,8 +31,10 @@ class BaseProtector:
         self.is_file = is_file(file_or_dir)
         if self.is_file:
             if not any(get_file_type(file_or_dir)):
-                logger.error(f"This {self.file_or_dir} can not be protect now! "
-                             f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!")
+                logger.error(
+                    f"This {self.file_or_dir} can not be protect now! "
+                    f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!"
+                )
                 sys.exit()
             self.is_pyfile, self.is_wheel, self.is_tarball = get_file_type(file_or_dir)
 
@@ -41,7 +49,9 @@ class BaseProtector:
             if self.inplace:
                 self.file = self.file_or_dir
             else:
-                self.file = self.file_or_dir.parent / '__goldenmask__' / self.file_or_dir.name
+                self.file = (
+                    self.file_or_dir.parent / "__goldenmask__" / self.file_or_dir.name
+                )
                 if self.file.exists():
                     os.remove(self.file)
                 else:
@@ -50,42 +60,47 @@ class BaseProtector:
                     except FileExistsError:
                         pass
                 shutil.copy(self.file_or_dir, self.file)
-            self.info_file = self.file.parent / '.goldenmask'
-            self.build_temp = self.file.parent / 'build-goldenmask'
+            self.info_file = self.file.parent / ".goldenmask"
+            self.build_temp = self.file.parent / "build-goldenmask"
         else:
             if self.is_file:
                 tmp_directory = unpack(self.file_or_dir)
                 self.dir = tmp_directory
                 self.no_smart = True
                 if self.inplace:
-                    self.info_file = self.file_or_dir.parent / '.goldenmask'
+                    self.info_file = self.file_or_dir.parent / ".goldenmask"
                 else:
-                    self.info_file = self.file_or_dir.parent / GOLDENMASK / '.goldenmask'
+                    self.info_file = (
+                        self.file_or_dir.parent / GOLDENMASK / ".goldenmask"
+                    )
             else:
                 if self.inplace:
                     self.dir = self.file_or_dir
                 else:
-                    self.dir = Path(file_or_dir) / '__goldenmask__'
+                    self.dir = Path(file_or_dir) / "__goldenmask__"
                     if self.dir.exists():
                         # TODO: may be I should try to speed !
                         shutil.rmtree(self.dir)
                     if self.no_smart:
                         shutil.copytree(self.file_or_dir, self.dir)
                     else:
-                        shutil.copytree(self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy)
-                self.info_file = self.dir / '.goldenmask'
+                        shutil.copytree(
+                            self.file_or_dir, self.dir, ignore=Ignore(self.dir).copy
+                        )
+                self.info_file = self.dir / ".goldenmask"
 
-            self.build_temp = self.dir / 'build-goldenmask'
+            self.build_temp = self.dir / "build-goldenmask"
 
 
 class CompileallProtector(BaseProtector):
-
     def __init__(self, file_or_dir, inplace=False, no_smart=False):
         super().__init__(file_or_dir, inplace, no_smart)
 
     def protect(self):
         if self.is_pyfile:
-            success = compileall.compile_file(self.file, force=True, legacy=True, optimize=2, quiet=1)
+            success = compileall.compile_file(
+                self.file, force=True, legacy=True, optimize=2, quiet=1
+            )
             if success:
                 os.remove(self.file)
         else:
@@ -97,9 +112,15 @@ class CompileallProtector(BaseProtector):
                 rx = Ignore(self.dir)
             else:
                 rx = None
-            success = compileall.compile_dir(self.dir, force=True, legacy=True, optimize=2, quiet=1,
-                                             rx=rx,
-                                             workers=os.cpu_count())
+            success = compileall.compile_dir(
+                self.dir,
+                force=True,
+                legacy=True,
+                optimize=2,
+                quiet=1,
+                rx=rx,
+                workers=os.cpu_count(),
+            )
             if success:
                 remove_python_files(self.dir)
 
@@ -110,7 +131,6 @@ class CompileallProtector(BaseProtector):
 
 
 class CythonProtector(BaseProtector):
-
     def __init__(self, file_or_dir, inplace=False, no_smart=False):
         super().__init__(file_or_dir, inplace, no_smart)
 
@@ -119,17 +139,26 @@ class CythonProtector(BaseProtector):
         if self.is_pyfile:
             success = True
             ext_modules = cythonize(
-                str(self.file),
-                compiler_directives={'language_level': 3}
+                str(self.file), compiler_directives={"language_level": 3}
             )
             try:
                 # os.chdir(str(self.file.parent))
                 # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
                 # setup(ext_modules=ext_modules, script_args=["build_ext", "--inplace"])
-                setup(ext_modules=ext_modules,
-                      script_args=["build_ext", "-b", str(self.file.parent), "-t", str(self.build_temp)])
+                setup(
+                    ext_modules=ext_modules,
+                    script_args=[
+                        "build_ext",
+                        "-b",
+                        str(self.file.parent),
+                        "-t",
+                        str(self.build_temp),
+                    ],
+                )
             except Exception as e:
-                logger.warning(f'Can not build file {self.file} using Cython, we will try to use Compileall!')
+                logger.warning(
+                    f"Can not build file {self.file} using Cython, we will try to use Compileall!"
+                )
                 logger.warning(e)
                 protector = CompileallProtector(self.file, inplace=True)
                 success = protector.protect()
@@ -140,13 +169,15 @@ class CythonProtector(BaseProtector):
             return success
         else:
             python_files_normal = []
-            for file in Path(self.dir).rglob('*.py'):
+            for file in Path(self.dir).rglob("*.py"):
                 if Ignore(self.dir).search(str(file)) and not self.no_smart:
                     continue
                 # TODO: It seems that there are many files that can not be compiled using Cython.
-                if ((file.stem.startswith('__') and file.stem.endswith('__')) or
-                        is_entrypoint(file) or
-                        file.name == 'setup.py'):
+                if (
+                    (file.stem.startswith("__") and file.stem.endswith("__"))
+                    or is_entrypoint(file)
+                    or file.name == "setup.py"
+                ):
                     protector = CompileallProtector(file, inplace=True)
                     success = protector.protect()
                     if not success:
@@ -155,18 +186,28 @@ class CythonProtector(BaseProtector):
                     python_files_normal.append(str(file))
 
             if not python_files_normal:
-                logger.error(f"There is no python files to build using Cython in folder {self.dir}")
+                logger.error(
+                    f"There is no python files to build using Cython in folder {self.dir}"
+                )
                 raise NoPythonFiles()
             ext_modules = cythonize(
                 python_files_normal,
-                compiler_directives={'language_level': 3},
+                compiler_directives={"language_level": 3},
                 quiet=True,
                 force=True,
-                nthreads=multiprocessing.cpu_count()
+                nthreads=multiprocessing.cpu_count(),
             )
             try:
-                setup(ext_modules=ext_modules,
-                      script_args=["build_ext", "-b", str(self.dir), "-t", str(self.build_temp)])
+                setup(
+                    ext_modules=ext_modules,
+                    script_args=[
+                        "build_ext",
+                        "-b",
+                        str(self.dir),
+                        "-t",
+                        str(self.build_temp),
+                    ],
+                )
             except Exception as e:
                 logger.error(e)
                 success = False
@@ -185,9 +226,7 @@ class CythonProtector(BaseProtector):
     @staticmethod
     def clean(file: Path):
         file.unlink()
-        file_c = file.with_suffix('.c')
+        file_c = file.with_suffix(".c")
         if file_c.exists():
             file_c.unlink()
         rename_so_and_pyd_file(file)
-
-
