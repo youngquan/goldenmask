@@ -1,3 +1,5 @@
+import shutil
+import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -31,47 +33,23 @@ def test_compile_one_file_and_inplace(tmp_path: Path, suffix_so_or_pyd):
     assert not file_py.exists()
 
 
-def test_compile_one_dir(tmp_path):
-    # shutil.copytree(shared_datadir / 'demo-project', tmp_path / 'demo-project')
-    # print(str(shared_datadir / 'demo-project'))
-    # print(list((shared_datadir / 'demo-project').iterdir()))
-    src = r"E:\projects\goldenmask\tests\data\demo-project"
-    # des = tmp_path / 'demo-project'
-    # des = Path('data/demo-project')
-    # shutil.copytree(src, des)
+def test_compile_one_dir(shared_datadir: Path):
+    dst = Path(tempfile.mkdtemp(prefix="cython-build")).resolve()
+    shutil.copytree(str(shared_datadir / "demo-project"), str(dst / "demo-project"))
     runner = CliRunner()
-    result = runner.invoke(goldenmask, ["-l", 2, src], color=True)
-    print(result.output)
+    result = runner.invoke(goldenmask, ["-l", 2, str(dst / "demo-project")], color=True)
     assert result.exit_code == 0
+    shutil.rmtree(dst, ignore_errors=True)
 
 
-# def test_compile_one_dir(tmp_path, shared_datadir):
-#     # shutil.copytree(shared_datadir / 'demo-project', tmp_path / 'demo-project')
-#     # print(str(shared_datadir / 'demo-project'))
-#     # print(list((shared_datadir / 'demo-project').iterdir()))
-#     src = 'E:\\projects\\goldenmask\\tests\\data\\demo-project'
-#     des = tmp_path / 'demo-project'
-#     shutil.copytree(src, des)
-#     runner = CliRunner(charset='gbk')
-#     result = runner.invoke(goldenmask, ['-l', 2, str(des)], color=True)
-#     assert result.exit_code == 0
-#     print(result.output)
-#
-#
-# def test_compile_one_dir_and_inplace(tmp_path):
-#     file_num = 2
-#     for i in range(file_num):
-#         file = tmp_path / (str(i) + '.py')
-#         file.write_text(f"print('This is content from file {i}')")
-#
-#     runner = CliRunner()
-#     result = runner.invoke(goldenmask, ['-i', str(tmp_path)])
-#     assert result.exit_code == 0
-#     for i in range(file_num):
-#         file_pyc = tmp_path / (str(i) + '.pyc')
-#         assert file_pyc.exists()
-#         file_py = tmp_path / (str(i) + '.py')
-#         assert not file_py.exists()
+def test_compile_one_dir_inplace(shared_datadir: Path):
+    dst = Path(tempfile.mkdtemp(prefix="cython-build")).resolve()
+    shutil.copytree(str(shared_datadir / "demo-project"), str(dst / "demo-project"))
+    runner = CliRunner()
+    result = runner.invoke(
+        goldenmask, ["-l", 2, "--inplace", str(dst / "demo-project")], color=True
+    )
+    assert result.exit_code == 0
 
 
 def test_compile_one_wheel_package(shared_datadir: Path):

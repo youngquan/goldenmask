@@ -24,13 +24,13 @@ Options.docstrings = False
 
 
 class BaseProtector:
-    def __init__(self, source_path, inplace, no_smart):
+    def __init__(self, source_path: str, inplace: bool, no_smart: bool) -> None:
         self.source_path = Path(source_path)
         self.is_pyfile, self.is_wheel, self.is_tarball, self.is_dir = get_file_type(
-            source_path
+            str(self.source_path)
         )
         if not self.is_dir:
-            if not any(get_file_type(source_path)):
+            if not any((self.is_pyfile, self.is_wheel, self.is_tarball)):
                 logger.error(
                     f"This {self.source_path} can not be protect now! "
                     f"Only files end with '.py', '.tar.gz' or '.whl' can be protect!"
@@ -56,16 +56,7 @@ class BaseProtector:
                 shutil.copy(self.source_path, self.file)
             self.info_file = self.file.parent / ".goldenmask"
             self.build_temp = self.file.parent / "build-goldenmask"
-        elif self.is_wheel or self.is_tarball:
-            tmp_directory = unpack(self.source_path)
-            self.dir = tmp_directory
-            self.no_smart = True
-            if self.inplace:
-                self.info_file = self.source_path.parent / ".goldenmask"
-            else:
-                self.info_file = self.source_path.parent / GOLDENMASK / ".goldenmask"
-            self.build_temp = self.dir / "build-goldenmask"
-        else:
+        elif self.is_dir:
             if self.inplace:
                 self.dir = self.source_path
             else:
@@ -81,10 +72,25 @@ class BaseProtector:
                     )
             self.info_file = self.dir / ".goldenmask"
             self.build_temp = self.dir / "build-goldenmask"
+        else:
+
+            tmp_directory = unpack(self.source_path)
+            if self.is_wheel:
+                self.dir = tmp_directory
+            if self.is_tarball:
+                self.dir = list(tmp_directory.iterdir())[0]
+            self.no_smart = True
+            if self.inplace:
+                self.info_file = self.source_path.parent / ".goldenmask"
+            else:
+                self.info_file = self.source_path.parent / GOLDENMASK / ".goldenmask"
+            self.build_temp = self.dir / "build-goldenmask"
 
 
 class CompileallProtector(BaseProtector):
-    def __init__(self, source_path, inplace=False, no_smart=False):
+    def __init__(
+        self, source_path: str, inplace: bool = False, no_smart: bool = False
+    ) -> None:
         super().__init__(source_path, inplace, no_smart)
 
     def protect(self):
@@ -124,7 +130,9 @@ class CompileallProtector(BaseProtector):
 
 
 class CythonProtector(BaseProtector):
-    def __init__(self, source_path, inplace=False, no_smart=False):
+    def __init__(
+        self, source_path: str, inplace: bool = False, no_smart: bool = False
+    ) -> None:
         super().__init__(source_path, inplace, no_smart)
 
     def protect(self):
@@ -167,7 +175,7 @@ class CythonProtector(BaseProtector):
                     or is_entrypoint(file)
                     or file.name == "setup.py"
                 ):
-                    protector = CompileallProtector(file, inplace=True)
+                    protector = CompileallProtector(str(file), inplace=True)
                     success = protector.protect()
                     if not success:
                         break

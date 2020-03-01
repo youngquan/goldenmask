@@ -9,7 +9,7 @@ from goldenmask.protect import CompileallProtector, CythonProtector
 from goldenmask.utils import get_build_info
 
 
-# TODO: do i need to add an `--inplace` parameter!
+# TODO: do i need to add an `--inplace` parameter ?
 @click.command()
 @click.argument("files_or_dirs", nargs=-1, type=click.Path(exists=True))
 @click.option(
@@ -18,7 +18,7 @@ from goldenmask.utils import get_build_info
     type=int,
     default=1,
     metavar="<int>",
-    help="Level of protection: 1-compileall; 2-cython.",
+    help="Level of protection: 1 - compileall; 2 - cython.",
 )
 @click.option(
     "-i", "--inplace", is_flag=True, help="Whether compile python files in place."
@@ -31,18 +31,19 @@ from goldenmask.utils import get_build_info
 def goldenmask(
     files_or_dirs: Tuple[click.Path], layer: int, inplace: bool, no_smart: bool
 ):
-    """
-    Goldenmask is a tool to protect your python source code easily.
+    """Goldenmask is a tool to protect your python source code easily.
+
+    FILES_OR_DIRS can be python files, wheel packages,source packages or dirs contain python files.
     """
     for file_or_dir in files_or_dirs:
-        if not Path(file_or_dir).exists():  # type: ignore
+        if not Path(str(file_or_dir)).exists():  # type: ignore
             logger.error(f"{file_or_dir} dose not exists!")
             continue
         if layer == 1:
-            protector = CompileallProtector(file_or_dir, inplace, no_smart)
+            protector = CompileallProtector(str(file_or_dir), inplace, no_smart)
             success = protector.protect()
         elif layer == 2:
-            protector = CythonProtector(file_or_dir, inplace, no_smart)
+            protector = CythonProtector(str(file_or_dir), inplace, no_smart)
             success = protector.protect()
         else:
             raise UnsupportedLayerException(f"This layer {layer} is not supported now!")

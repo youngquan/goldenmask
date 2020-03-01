@@ -58,7 +58,7 @@ def get_file_type(path: str) -> Tuple[bool, bool, bool, bool]:
 
 
 def unpack(file: Path) -> Path:
-    tmp_dir = Path(tempfile.mkdtemp(prefix="goldenmask-")).resolve()
+    tmp_dir = Path(tempfile.mkdtemp(prefix="goldenmask")).resolve()
     if str(file).endswith(".tar.gz"):
         with tarfile.open(file) as tar:
             tar.extractall(tmp_dir)
@@ -138,7 +138,6 @@ def virtualenv_folder(path, names):
 def is_entrypoint(file: Union[str, Path]) -> bool:
     with Path(file).open(encoding="utf8") as f:
         for line in f:
-            # print(line)
             if (
                 line.strip().replace(" ", "") == "if__name__=='__main__':"
                 or line.strip().replace(" ", "") == 'if__name__=="__main__":'
@@ -153,9 +152,6 @@ def rename_so_and_pyd_file(file: Union[str, Path]):
     else:
         suffix = ".so"
     pyd_files: List[Path] = list(file.parent.glob(f"{file.stem}.*{suffix}"))
-    # print(file)
-    # print(pyd_files)
-    # assert len(pyd_files) > 1
     if pyd_files:
         pyd_files[0].rename(file.parent / (file.stem + suffix))
 
