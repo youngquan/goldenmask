@@ -1,4 +1,5 @@
 import os
+import platform
 import re
 import shutil
 import sys
@@ -12,7 +13,7 @@ from goldenmask import GOLDENMASK
 from goldenmask.exceptions import UnsupportedFileError
 
 
-def remove_python_files(dir_):
+def remove_python_files(dir_: str) -> None:
     for py_file in Path(dir_).rglob("*.py"):
         os.remove(str(py_file))
 
@@ -108,11 +109,11 @@ def pack(unpacked_dir: Path, source_file: Path, inplace: bool) -> Path:
 def get_build_info() -> Dict[str, str]:
     return {
         "python_version": sys.version,
-        "build_platform": sys.platform,
+        "build_platform": str(platform.uname()),
     }
 
 
-def virtualenv_folder(path, names):
+def virtualenv_folder(path: str, names: List[str]) -> List[str]:
     """
     Used for the parameter `ignore` in function `shutil.copytree`.
     Do not copy virtualenv folder and `__goldenmask__`.
@@ -146,7 +147,7 @@ def is_entrypoint(file: Union[str, Path]) -> bool:
         return False
 
 
-def rename_so_and_pyd_file(file: Union[str, Path]):
+def rename_so_and_pyd_file(file: Union[str, Path]) -> None:
     if sys.platform == "win32" or sys.platform == "cygwin":
         suffix = ".pyd"
     else:
@@ -157,7 +158,9 @@ def rename_so_and_pyd_file(file: Union[str, Path]):
 
 
 class Ignore:
-    def __init__(self, directory: Path, ignore_file_name: str = ".goldenmaskignore"):
+    def __init__(
+        self, directory: Path, ignore_file_name: str = ".goldenmaskignore"
+    ) -> None:
         self.dir = directory
         self.ignore_file = self.dir / ignore_file_name
 
@@ -190,7 +193,7 @@ class Ignore:
                 return True
         return False
 
-    def copy(self, path: str, names: List[str]):
+    def copy(self, path: str, names: List[str]) -> List[str]:
         """
         Used for the parameter `ignore` in function `shutil.copytree`.
         Do not copy virtualenv folder and `__goldenmask__`.
@@ -215,7 +218,7 @@ class Ignore:
                 subset.append(name)
         return subset
 
-    def get_virtualenv_folders(self):
+    def get_virtualenv_folders(self) -> List[str]:
         virtualenv_folders = []
         for name in self.dir.iterdir():
             if name.is_dir():

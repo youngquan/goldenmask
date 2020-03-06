@@ -93,7 +93,7 @@ class CompileallProtector(BaseProtector):
     ) -> None:
         super().__init__(source_path, inplace, no_smart)
 
-    def protect(self):
+    def protect(self) -> bool:
         if self.is_pyfile:
             success = compileall.compile_file(
                 self.file, force=True, legacy=True, optimize=2, quiet=1
@@ -135,7 +135,7 @@ class CythonProtector(BaseProtector):
     ) -> None:
         super().__init__(source_path, inplace, no_smart)
 
-    def protect(self):
+    def protect(self) -> bool:
         success = False
         if self.is_pyfile:
             success = True
@@ -221,7 +221,7 @@ class CythonProtector(BaseProtector):
         return success
 
     @staticmethod
-    def clean(file: Path):
+    def clean(file: Path) -> None:
         file.unlink()
         file_c = file.with_suffix(".c")
         if file_c.exists():

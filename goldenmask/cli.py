@@ -1,4 +1,5 @@
 import json
+from functools import partial
 from pathlib import Path
 from typing import Tuple
 
@@ -7,6 +8,8 @@ from goldenmask import logger
 from goldenmask.exceptions import UnsupportedLayerException
 from goldenmask.protect import CompileallProtector, CythonProtector
 from goldenmask.utils import get_build_info
+
+out = partial(click.secho, bold=True)
 
 
 # TODO: do i need to add an `--inplace` parameter ?
@@ -30,7 +33,7 @@ from goldenmask.utils import get_build_info
 )
 def goldenmask(
     files_or_dirs: Tuple[click.Path], layer: int, inplace: bool, no_smart: bool
-):
+) -> None:
     """Goldenmask is a tool to protect your python source code easily.
 
     FILES_OR_DIRS can be python files, wheel packages,source packages or dirs contain python files.
@@ -46,11 +49,13 @@ def goldenmask(
             protector = CythonProtector(str(file_or_dir), inplace, no_smart)
             success = protector.protect()
         else:
+
             raise UnsupportedLayerException(f"This layer {layer} is not supported now!")
 
         if protector and success:
             with open(protector.info_file, "w") as f:
                 json.dump(get_build_info(), f, indent="\t")
+            out("All done! ✨ 🍰 ✨")
         else:
             logger.error(
                 f"{file_or_dir} can not be protected, please see the error message!"
