@@ -29,7 +29,7 @@ black = "^19.10b0"
 [[tool.poetry.source]]
 name = "tsinghua"
 url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
-default = true
+default = false
 
 [tool.poetry.scripts]
 goldenmask = "goldenmask.cli:goldenmask"
