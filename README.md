@@ -13,7 +13,7 @@ Let's try to goldenmask now!
 ```bash
 $ pip install goldenmask
 
-# 默认方法是使用 Compileall 编译为 pyc
+# The default method is Compileall
 $ goldenmask yourpythonfile.py
 All done! ✨ 🍰 ✨
 
@@ -26,7 +26,7 @@ $ tree -a .
 
 1 directory, 3 files
 
-# 用生成的 .so 文件替换原始的 py 文件
+# Use Cython to generate .so file and replace the source python file
 $ goldenmask -i -l 2 yourpythonfile.py
 All done! ✨ 🍰 ✨
 
